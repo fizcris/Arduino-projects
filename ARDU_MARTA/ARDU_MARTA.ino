@@ -10,14 +10,19 @@ int RELAY_PIN_1 = 27;
 int RELAY_PIN_2 = 26;
 int RELAY_PIN_3 = 25; 
 int RELAY_PIN_4 = 33;
-int RELAY_PIN_1_PREV_STATE;
-int RELAY_PIN_2_PREV_STATE;
-int RELAY_PIN_3_PREV_STATE;
-int RELAY_PIN_4_PREV_STATE;
-int RELAY_PIN_GEN_PREV_STATE = 0;
+const int intPin = 18; //Cambiar nombre a SWITCH
+
+int RELAY_PIN_1_STATE = 0;
+int RELAY_PIN_2_STATE = 0;
+int RELAY_PIN_3_STATE = 0;
+int RELAY_PIN_4_STATE = 0;
+int INPUT_STATE;
+int int_payload;
+
+int UPDATE_INTERVAL = 200;
 
 const int timeThreshold = 150;
-const int intPin = 18; //Cambiar nombre a SWITCH
+
 long startTime = 0;
 
 float h;
@@ -51,16 +56,15 @@ void setup()
   pinMode(RELAY_PIN_4, OUTPUT);
   pinMode(intPin, INPUT_PULLUP);
 
-  RELAY_PIN_1_PREV_STATE = digitalRead(RELAY_PIN_1);
-  RELAY_PIN_2_PREV_STATE = digitalRead(RELAY_PIN_2);
-  RELAY_PIN_3_PREV_STATE = digitalRead(RELAY_PIN_3);
-  RELAY_PIN_4_PREV_STATE = digitalRead(RELAY_PIN_4);
+  digitalWrite(RELAY_PIN_1, !RELAY_PIN_1_STATE); 
+  digitalWrite(RELAY_PIN_2, !RELAY_PIN_2_STATE); 
+  digitalWrite(RELAY_PIN_3, !RELAY_PIN_3_STATE); 
+  digitalWrite(RELAY_PIN_4, !RELAY_PIN_4_STATE); 
   
   Serial.begin(9600);
   dht.begin();
   
   attachInterrupt(digitalPinToInterrupt(intPin), debounceCount, CHANGE);
-  
   client.enableDebuggingMessages();
 }
 
@@ -68,41 +72,70 @@ void onConnectionEstablished()
 {
    // Subscribe to "mytopic/test" and display received message to Serial
   client.subscribe("home/garden-lights/1", [](const String & payload) {
-    Serial.println(payload);
-    if(String(RELAY_PIN_1_PREV_STATE) != payload){
+
+    if (payload == "true") int_payload=1;
+    else int_payload = 0;
+
+    RELAY_PIN_1_STATE = !digitalRead(RELAY_PIN_1);
+    if(RELAY_PIN_1_STATE != int_payload){
       SwitchRelay1(); }
   });
 
     client.subscribe("home/garden-lights/2", [](const String & payload) {
-      if(String(RELAY_PIN_2_PREV_STATE) != payload){
+
+       if (payload == "true") int_payload=1;
+       else int_payload = 0;
+
+       RELAY_PIN_2_STATE = !digitalRead(RELAY_PIN_2);
+
+      if(RELAY_PIN_2_STATE != int_payload){
       SwitchRelay2(); }
   });
 
+
     client.subscribe("home/garden-lights/3", [](const String & payload) {
-      if(String(RELAY_PIN_3_PREV_STATE) != payload){
+
+       if (payload == "true") int_payload=1;
+       else int_payload = 0;
+       RELAY_PIN_3_STATE = !digitalRead(RELAY_PIN_3);
+       if(RELAY_PIN_3_STATE != int_payload){
       SwitchRelay3(); }
   });
 
+
     client.subscribe("home/garden-lights/4", [](const String & payload) {
-      if(String(RELAY_PIN_4_PREV_STATE) != payload){
+
+       if (payload == "true") int_payload=1;
+       else int_payload = 0;
+      RELAY_PIN_4_STATE = !digitalRead(RELAY_PIN_4);
+
+      if(RELAY_PIN_4_STATE != int_payload){
       SwitchRelay4(); }
   });
 }
 
 void SwitchRelay1(){
-  digitalWrite(RELAY_PIN_1, !RELAY_PIN_1_PREV_STATE); 
+  RELAY_PIN_1_STATE = !RELAY_PIN_1_STATE;
+  digitalWrite(RELAY_PIN_1, !RELAY_PIN_1_STATE); 
+
   }
 
 void SwitchRelay2(){
-  digitalWrite(RELAY_PIN_2, !RELAY_PIN_2_PREV_STATE); 
+  RELAY_PIN_2_STATE = !RELAY_PIN_2_STATE;
+  digitalWrite(RELAY_PIN_2, !RELAY_PIN_2_STATE); 
+  
   }
 
 void SwitchRelay3(){
-  digitalWrite(RELAY_PIN_3, !RELAY_PIN_3_PREV_STATE); 
+  RELAY_PIN_3_STATE = !RELAY_PIN_3_STATE; 
+  digitalWrite(RELAY_PIN_3, !RELAY_PIN_3_STATE);
+  
   }
 
 void SwitchRelay4(){
-  digitalWrite(RELAY_PIN_4, !RELAY_PIN_4_PREV_STATE); 
+  RELAY_PIN_4_STATE = !RELAY_PIN_4_STATE;
+  digitalWrite(RELAY_PIN_4, !RELAY_PIN_4_STATE); 
+  
   }
 
 
@@ -124,7 +157,7 @@ void loop()
   client.loop();
 
   long now = millis();
-  if (now - lastMsg > 3000) {
+  if (now - lastMsg > UPDATE_INTERVAL) {
     lastMsg = now;
     /* read DHT11/DHT22 sensor and convert to string */
     h = dht.readHumidity();
@@ -143,7 +176,7 @@ void loop()
     String IsTrue = "true";
     String IsFalse = "false";
 
-    if (RELAY_PIN_1_PREV_STATE == false)
+    if (RELAY_PIN_1_STATE == false)
     {
       IsFalse.toCharArray(msgR1, 6);
     }
@@ -152,7 +185,7 @@ void loop()
       IsTrue.toCharArray(msgR1, 6);  
     }
 
-    if (RELAY_PIN_2_PREV_STATE == false)
+    if (RELAY_PIN_2_STATE == false)
     {
       IsFalse.toCharArray(msgR2, 6);
     }
@@ -161,7 +194,7 @@ void loop()
       IsTrue.toCharArray(msgR2, 6); 
     }
 
-    if (RELAY_PIN_3_PREV_STATE == false)
+    if (RELAY_PIN_3_STATE == false)
     {
       IsFalse.toCharArray(msgR3, 6);
     }
@@ -170,7 +203,7 @@ void loop()
       IsTrue.toCharArray(msgR3, 6); 
     }
 
-    if (RELAY_PIN_4_PREV_STATE == false)
+    if (RELAY_PIN_4_STATE == false)
     {
       IsFalse.toCharArray(msgR4, 6);
     }
@@ -186,6 +219,9 @@ void loop()
 
     flagPublishRelayStates = false;   
     }
+
+    Serial.print("Relay state 1:");
+    Serial.print(INPUT_STATE);
 }
 
 void debounceCount()
@@ -193,14 +229,47 @@ void debounceCount()
   if (millis() - startTime > timeThreshold)
   {
     startTime = millis();
+    return;
   }
 
-  digitalWrite(RELAY_PIN_1, !RELAY_PIN_GEN_PREV_STATE); 
-  digitalWrite(RELAY_PIN_2, !RELAY_PIN_GEN_PREV_STATE); 
-  digitalWrite(RELAY_PIN_3, !RELAY_PIN_GEN_PREV_STATE); 
-  digitalWrite(RELAY_PIN_4, !RELAY_PIN_GEN_PREV_STATE); 
+  INPUT_STATE = digitalRead(intPin);
 
-  RELAY_PIN_GEN_PREV_STATE = !RELAY_PIN_GEN_PREV_STATE;
+  if (INPUT_STATE) doRising();  
+    else doFalling();
+  }
 
-  flagPublishRelayStates = true;
-}
+
+void  doRising(){
+    digitalWrite(RELAY_PIN_1, HIGH); 
+    digitalWrite(RELAY_PIN_2, HIGH); 
+    digitalWrite(RELAY_PIN_3, HIGH); 
+    digitalWrite(RELAY_PIN_4, HIGH); 
+
+
+    RELAY_PIN_1_STATE= false;
+    RELAY_PIN_2_STATE= false;
+    RELAY_PIN_3_STATE= false;
+    RELAY_PIN_4_STATE= false;
+
+    INPUT_STATE = 0;
+
+    flagPublishRelayStates = true;
+    return;
+    };
+    
+  void doFalling(){
+    digitalWrite(RELAY_PIN_1, LOW); 
+    digitalWrite(RELAY_PIN_2, LOW); 
+    digitalWrite(RELAY_PIN_3, LOW); 
+    digitalWrite(RELAY_PIN_4, LOW); 
+
+    RELAY_PIN_1_STATE= true;
+    RELAY_PIN_2_STATE= true;
+    RELAY_PIN_3_STATE= true;
+    RELAY_PIN_4_STATE= true;
+
+    INPUT_STATE = 1;
+
+    flagPublishRelayStates = true;
+    return;
+    };
